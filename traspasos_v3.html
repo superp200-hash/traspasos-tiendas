@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traspasos - prueba V2</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f5f7;color:#17202a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+main{max-width:1000px;margin:auto;padding:16px}.card{background:#fff;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 4px 18px rgba(0,0,0,.07)}
+h1{margin:0 0 5px;font-size:25px}.muted{color:#667085}.clock{font-size:18px;font-weight:700;margin:12px 0}
+.pickers{display:grid;grid-template-columns:1fr 42px 1fr;gap:12px;align-items:start}.arrow{font-size:34px;font-weight:800;text-align:center;margin-top:60px}
+h2{font-size:14px;margin:8px 0 9px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+button{min-height:48px;border-radius:11px;border:1px solid #d0d5dd;background:#fff;font-weight:700;padding:8px;cursor:pointer}
+button.selected{background:#17202a;color:#fff;border-color:#17202a}
+.result{margin-top:16px;padding:15px;border-radius:14px;background:#f7f8fa}.big{font-size:25px;font-weight:800;margin-bottom:10px}
+.warn{margin-top:12px;padding:12px;border-left:4px solid #f59e0b;background:#fff5df;border-radius:8px}
+.error{margin-top:12px;padding:12px;border-left:4px solid #d92d20;background:#fff0ef;border-radius:8px}
+.steps{margin-top:10px}.step{padding:7px 0;border-bottom:1px solid #e7e9ec}.step:last-child{border:0}
+.testgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.test{text-align:left}
+@media(max-width:650px){.pickers{grid-template-columns:1fr 24px 1fr;gap:5px}.arrow{font-size:24px;margin-top:58px}.grid{grid-template-columns:1fr}.testgrid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body><main>
+<section class="card">
+<h1>📦 Consulta de traspasos</h1>
+<div class="muted">Versión V3 · origen y destino enfrentados · hora automática.</div>
+<div class="clock">🕐 <span id="clock"></span></div>
+<div class="pickers">
+<div><h2>ORIGEN</h2><div id="orig" class="grid"></div></div>
+<div class="arrow">→</div>
+<div><h2>DESTINO</h2><div id="dest" class="grid"></div></div>
+</div>
+<div id="result"></div>
+</section>
+<section class="card">
+<h2 style="margin-top:0">🧪 Pruebas rápidas</h2>
+<div class="muted" style="margin-bottom:10px">Cargan automáticamente origen y destino.</div>
+<div id="tests" class="testgrid"></div>
+</section>
+<section class="card"><div class="muted">Los horarios son los facilitados hasta ahora. Las rutas pendientes/X no se inventan. Las dudas de coincidencias se deben validar antes de convertirlas en regla definitiva.</div></section>
+</main>
+<script>
+const STORES=["ATALAYAS", "ALICANTE", "ALICANTE NORTE", "SAN VICENTE", "MUCHAMIEL", "TORREVIEJA", "HORADADA", "ELCHE CARRUS", "ELCHE SECTOR", "ORIHUELA", "IBI", "ALCOY", "ASPE", "ELDA", "VILLENA", "ALMANSA", "ALBACETE", "BENIDORM", "CALPE", "ONDARA"], LEGS=[["R01", "ATALAYAS", "ALICANTE", "07:30", "08:05", "19:30 D/A"], ["R01", "ALICANTE", "ALICANTE NORTE", "08:05", "08:45", "19:30 D/A"], ["R01", "ALICANTE NORTE", "ALICANTE", "08:45", "09:45", "19:30 D/A"], ["R01", "ALICANTE", "ATALAYAS", "09:45", "10:00", "09:30"], ["R01", "ATALAYAS", "ALICANTE", "10:50", "11:20", "11:00"], ["R01", "ALICANTE", "ALICANTE NORTE", "11:20", "11:50", "11:00"], ["R01", "ALICANTE NORTE", "ALICANTE", "11:50", "12:45", "11:40"], ["R01", "ALICANTE", "ATALAYAS", "12:45", "13:00", "12:30"], ["R01", "ATALAYAS", "ALICANTE", "15:00", "15:30", "13:50"], ["R01", "ALICANTE", "ALICANTE NORTE", "15:30", "16:00", "13:50"], ["R01", "ALICANTE NORTE", "ALICANTE", "16:00", "16:45", "13:50"], ["R01", "ALICANTE", "ATALAYAS", "16:45", "17:00", "16:25"], ["R02", "ATALAYAS", "SAN VICENTE", "07:00", "07:40", "19:30 D/A"], ["R02", "SAN VICENTE", "MUCHAMIEL", "07:40", "08:30", "19:30 D/A"], ["R02", "MUCHAMIEL", "SAN VICENTE", "08:30", "09:30", "19:30 D/A"], ["R02", "SAN VICENTE", "ATALAYAS", "09:30", "10:00", "09:15"], ["R02", "ATALAYAS", "SAN VICENTE", "10:30", "10:50", "10:35"], ["R02", "SAN VICENTE", "MUCHAMIEL", "10:50", "11:30", "10:35"], ["R02", "MUCHAMIEL", "ATALAYAS", "11:30", "12:00", "11:15"], ["R02", "ATALAYAS", "SAN VICENTE", "14:50", "15:20", "13:15"], ["R02", "SAN VICENTE", "MUCHAMIEL", "15:20", "16:00", "13:15"], ["R02", "MUCHAMIEL", "SAN VICENTE", "16:00", "16:30", "13:15"], ["R02", "SAN VICENTE", "ATALAYAS", "16:30", "17:00", "16:15"], ["R03", "ATALAYAS", "TORREVIEJA", "07:00", "08:30", "19:20 D/A"], ["R03", "TORREVIEJA", "ATALAYAS", "08:30", "09:40", "19:20 D/A"], ["R03", "ATALAYAS", "TORREVIEJA", "10:40", "11:40", "11:30"], ["R03", "TORREVIEJA", "ATALAYAS", "11:40", "12:40", "11:30"], ["R03", "ATALAYAS", "TORREVIEJA", "14:00", "15:15", "13:15"], ["R03", "TORREVIEJA", "ATALAYAS", "15:15", "16:40", "13:15"], ["R03 BIS", "ATALAYAS", "HORADADA", "07:15", "08:00", "19:15 D/A"], ["R03 BIS", "HORADADA", "TORREVIEJA", "08:00", "08:25", "19:15 D/A"], ["R03 BIS", "TORREVIEJA", "HORADADA", "08:25", "09:10", "08:10"], ["R03 BIS", "HORADADA", "TORREVIEJA", "10:30", "11:00", "10:15"], ["R03 BIS", "TORREVIEJA", "HORADADA", "11:00", "11:30", "10:50"], ["R03 BIS", "HORADADA", "TORREVIEJA", "15:00", "15:30", "13:15"], ["R03 BIS", "TORREVIEJA", "HORADADA", "15:30", "16:00", "13:15"], ["R04", "ATALAYAS", "ELCHE CARRUS", "07:00", "07:30", "19:15 D/A"], ["R04", "ELCHE CARRUS", "ELCHE SECTOR", "07:30", "08:00", "19:15 D/A"], ["R04", "ELCHE SECTOR", "ATALAYAS", "08:00", "09:30", "19:15 D/A"], ["R04", "ATALAYAS", "ELCHE CARRUS", "10:25", "10:55", "10:45"], ["R04", "ELCHE CARRUS", "ELCHE SECTOR", "10:55", "11:20", "10:45"], ["R04", "ELCHE SECTOR", "ATALAYAS", "11:20", "12:30", "11:10"], ["R04", "ATALAYAS", "ELCHE CARRUS", "14:05", "14:35", "14:00"], ["R04", "ELCHE CARRUS", "ELCHE SECTOR", "14:35", "15:00", "14:00"], ["R04", "ELCHE SECTOR", "ATALAYAS", "15:00", "16:40", "14:00"], ["R05", "ATALAYAS", "ORIHUELA", "07:00", "08:50", "08:40"], ["R05", "ORIHUELA", "ATALAYAS", "08:50", "09:30", "08:40"], ["R05", "ATALAYAS", "ORIHUELA", "10:30", "11:45", "11:30"], ["R05", "ORIHUELA", "ATALAYAS", "11:45", "12:30", "11:30"], ["R05", "ATALAYAS", "ORIHUELA", "14:00", "15:45", "13:30"], ["R05", "ORIHUELA", "ATALAYAS", "15:45", "16:40", "13:30"], ["R08", "ATALAYAS", "IBI", "07:00", "08:00", "19:20 D/A"], ["R08", "IBI", "ALCOY", "08:00", "08:50", "19:20 D/A"], ["R08", "ALCOY", "IBI", "08:50", "09:15", "08:40"], ["R08", "IBI", "ATALAYAS", "09:15", "09:30", "09:00"], ["R08", "ATALAYAS", "IBI", "10:30", "11:25", "10:55"], ["R08", "IBI", "ATALAYAS", "11:25", "11:40", "10:55"], ["R08", "ATALAYAS", "IBI", "14:00", "14:45", "13:15"], ["R08", "IBI", "ALCOY", "14:45", "15:45", "13:15"], ["R08", "ALCOY", "IBI", "15:45", "16:15", "13:15"], ["R08", "IBI", "ATALAYAS", "16:15", "16:40", "16:05"], ["R09", "ATALAYAS", "ASPE", "05:30", "06:20", "19:30 D/A"], ["R09", "ASPE", "ELDA", "06:20", "06:50", "19:30 D/A"], ["R09", "ELDA", "VILLENA", "06:50", "08:15", "19:15 D/A"], ["R09", "VILLENA", "ATALAYAS", "08:15", "09:00", "19:30 D/A"], ["R09", "ATALAYAS", "ASPE", "10:30", "11:00", "10:30"], ["R09", "ASPE", "ELDA", "11:00", "11:25", "10:30"], ["R09", "ELDA", "VILLENA", "11:25", "11:55", "10:45"], ["R09", "VILLENA", "ATALAYAS", "11:55", "12:10", "11:30"], ["R09", "ATALAYAS", "ASPE", "13:15", "13:45", "13:30"], ["R09", "ASPE", "ELDA", "13:45", "14:15", "13:30"], ["R09", "ELDA", "VILLENA", "14:15", "15:00", "13:45"], ["R09", "VILLENA", "ATALAYAS", "15:00", "16:00", "13:15"]], TESTS=[["ALICANTE", "ALICANTE NORTE"], ["ALICANTE", "ORIHUELA"], ["IBI", "ALCOY"], ["ELCHE CARRUS", "ORIHUELA"]];
+let origin="",destination="";
+function min(s){let m=String(s).match(/(\d{1,2}):(\d{2})/);return m?+m[1]*60+ +m[2]:null}
+function fmt(x){x=((x%1440)+1440)%1440;return String(Math.floor(x/60)).padStart(2,"0")+":"+String(x%60).padStart(2,"0")}
+function now(){let d=new Date();return d.getHours()*60+d.getMinutes()}
+function clock(){let d=new Date();document.querySelector("#clock").textContent=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
+function buttons(id,type){let box=document.querySelector(id);STORES.forEach(s=>{let b=document.createElement("button");b.textContent=s;b.onclick=()=>{if(type==="o")origin=s;else destination=s;mark();if(origin&&destination)calc()};box.appendChild(b)})}
+function mark(){document.querySelectorAll("#orig button").forEach(b=>b.classList.toggle("selected",b.textContent===origin));document.querySelectorAll("#dest button").forEach(b=>b.classList.toggle("selected",b.textContent===destination))}
+function edgeAt(e, earliest){
+  const dep=min(e[3]), arr=min(e[4]);
+  const cut=e[5]?min(e[5]):null;
+  for(let day=0;day<=3;day++){
+    const depAbs=day*1440+dep;
+    let arrAbs=day*1440+arr;
+    if(arr<dep) arrAbs+=1440;
+    if(depAbs<earliest) continue;
+    // El límite verde se aplica a la solicitud inicial. D/A significa que
+    // el pedido de esa salida se cierra el día anterior.
+    if(cut!==null && !String(e[5]).includes('D/A') && day===0 && earliest>cut) continue;
+    return {route:e[0],from:e[1],to:e[2],dep:depAbs,arr:arrAbs,cut:e[5]};
+  }
+  return null;
+}
+function findPath(from,to,start){
+  if(from===to)return {same:true};
+  const dist={}, prev={};
+  STORES.forEach(s=>dist[s]=Infinity);
+  dist[from]=start;
+  const used=new Set();
+  while(true){
+    let u=null,best=Infinity;
+    for(const s of STORES){ if(!used.has(s) && dist[s]<best){best=dist[s];u=s;} }
+    if(u===null) break;
+    used.add(u);
+    if(u===to) break;
+    for(const e of LEGS){
+      if(e[1]!==u) continue;
+      const edge=edgeAt(e,dist[u]);
+      if(!edge) continue;
+      if(edge.arr<dist[e[2]]){
+        dist[e[2]]=edge.arr;
+        prev[e[2]]={store:u,edge};
+      }
+    }
+  }
+  if(!prev[to]) return null;
+  const legs=[]; let cur=to;
+  while(cur!==from){ const p=prev[cur]; if(!p) return null; legs.unshift(p.edge); cur=p.store; }
+  return {legs,kind:legs.some(e=>e.from==='ATALAYAS'||e.to==='ATALAYAS')?'via':'direct'};
+}
+function dayLabel(abs){
+  const d=Math.floor(abs/1440);
+  if(d===0)return 'hoy';
+  if(d===1)return 'mañana';
+  return 'día siguiente';
+}
+function calc(){
+  let out=document.querySelector('#result'),n=now();
+  if(origin===destination){out.innerHTML='<div class="result"><div class="big">Mismo almacén.</div></div>';return;}
+  const p=findPath(origin,destination,n);
+  if(!p){
+    out.innerHTML='<div class="result"><div class="big">🔴 No hay conexión programada.</div><div>Faltan horarios o una conexión por definir.</div><div class="warn">⚠️ <b>No olvides terminar el traspaso interno.</b></div></div>';return;
+  }
+  const last=p.legs[p.legs.length-1];
+  let s='<div class="result"><div class="big">🟢 Llega '+dayLabel(last.arr)+' a las '+fmt(last.arr)+'</div>';
+  s+='<b>'+origin+' → '+destination+'</b><div class="steps">';
+  p.legs.forEach(e=>{s+='<div class="step"><b>'+e.from+' → '+e.to+'</b><br>'+e.route+' · sale '+fmt(e.dep)+' · llega '+fmt(e.arr)+(e.cut?' · H.PEDIDO '+e.cut:'')+'</div>';});
+  s+='</div>';
+  if(p.kind==='via')s+='<div class="muted" style="margin-top:9px">🏢 Enlace calculado por Atalayas.</div>';
+  s+='<div class="warn">⚠️ <b>No olvides terminar el traspaso interno.</b></div></div>';
+  out.innerHTML=s;
+}
+buttons("#orig","o");buttons("#dest","d");
+document.querySelector("#tests").innerHTML="";
+TESTS.forEach(t=>{let b=document.createElement("button");b.className="test";b.innerHTML="<b>"+t[0]+" → "+t[1]+"</b><br><span class='muted'>prueba</span>";b.onclick=()=>{origin=t[0];destination=t[1];mark();calc()};document.querySelector("#tests").appendChild(b)});
+clock();setInterval(clock,1000);
+</script></body></html>
