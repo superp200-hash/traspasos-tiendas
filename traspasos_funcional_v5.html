@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traspasos - prueba V2</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f5f7;color:#17202a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+main{max-width:1000px;margin:auto;padding:16px}.card{background:#fff;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 4px 18px rgba(0,0,0,.07)}
+h1{margin:0 0 5px;font-size:25px}.muted{color:#667085}.clock{font-size:18px;font-weight:700;margin:12px 0}
+.pickers{display:grid;grid-template-columns:1fr 42px 1fr;gap:12px;align-items:start}.arrow{font-size:34px;font-weight:800;text-align:center;margin-top:60px}
+h2{font-size:14px;margin:8px 0 9px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+button{min-height:48px;white-space:normal;border-radius:11px;border:1px solid #d0d5dd;background:#fff;font-weight:700;padding:8px;cursor:pointer}
+button.selected{background:#17202a;color:#fff;border-color:#17202a}
+.result{margin-top:16px;padding:15px;border-radius:14px;background:#f7f8fa}.big{font-size:25px;font-weight:800;margin-bottom:10px}
+.warn{margin-top:12px;padding:12px;border-left:4px solid #f59e0b;background:#fff5df;border-radius:8px}
+.error{margin-top:12px;padding:12px;border-left:4px solid #d92d20;background:#fff0ef;border-radius:8px}
+.steps{margin-top:10px}.step{padding:7px 0;border-bottom:1px solid #e7e9ec}.step:last-child{border:0}
+.testgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.test{text-align:left}
+@media(max-width:650px){.pickers{grid-template-columns:1fr 24px 1fr;gap:5px}.arrow{font-size:24px;margin-top:58px}.grid{grid-template-columns:1fr}.testgrid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body><main>
+<section class="card">
+<h1>📦 Consulta de traspasos</h1>
+<div class="muted">Versión V5 · origen y destino enfrentados · hora automática.</div>
+<div class="clock">🕐 <span id="clock"></span></div>
+<div class="pickers">
+<div><h2>ORIGEN</h2><div id="orig" class="grid"></div></div>
+<div class="arrow">→</div>
+<div><h2>DESTINO</h2><div id="dest" class="grid"></div></div>
+</div>
+<div id="result"></div>
+</section>
+<section class="card">
+<h2 style="margin-top:0">🧪 Pruebas rápidas</h2>
+<div class="muted" style="margin-bottom:10px">Cargan automáticamente origen y destino.</div>
+<div id="tests" class="testgrid"></div>
+</section>
+<section class="card"><div class="muted">Los horarios son los facilitados hasta ahora. Las rutas pendientes/X no se inventan. Las dudas de coincidencias se deben validar antes de convertirlas en regla definitiva.</div></section>
+</main>
+<script>
+const DISPLAY_NAMES={"ATALAYAS": "00 ATALAYAS", "ALICANTE": "01 ALICANTE", "BENIDORM": "03 BENIDORM", "TORREVIEJA": "04 TORREVIEJA", "VILLENA": "05 VILLENA", "ORIHUELA": "06 ORIHUELA", "ALCOY": "07 ALCOY", "ALBACETE": "08 ALBACETE", "ELDA": "09 ELDA", "MUCHAMIEL": "10 MUCHAMIEL", "ELCHE CARRUS": "11 ELCHE CARRUS", "SAN VICENTE": "12 SAN VICENTE", "ELCHE SECTOR": "14 ELCHE SECTOR", "ONDARA": "15 ONDARA", "ALICANTE NORTE": "16 ALICANTE NORTE", "ALMANSA": "17 ALMANSA", "CUENCA": "18 CUENCA", "VILLARROBLEDO": "19 VILLARROBLEDO", "TARANCON": "20 TARANCON", "CALPE": "21 CALPE", "HORADADA": "22 HORADADA", "ASPE": "24 ASPE", "JAVEA": "25 JAVEA", "DENIA": "26 DENIA", "LA RODA": "27 LA RODA", "HELLIN": "28 HELLIN", "IBI": "30 IBI"};
+
+const STORES=["ATALAYAS", "ALICANTE", "BENIDORM", "TORREVIEJA", "VILLENA", "ORIHUELA", "ALCOY", "ALBACETE", "ELDA", "MUCHAMIEL", "ELCHE CARRUS", "SAN VICENTE", "ELCHE SECTOR", "ONDARA", "ALICANTE NORTE", "ALMANSA", "CUENCA", "VILLARROBLEDO", "TARANCON", "CALPE", "HORADADA", "ASPE", "JAVEA", "DENIA", "LA RODA", "HELLIN", "IBI"];
+let origin="",destination="";
+function min(s){let m=String(s).match(/(\d{1,2}):(\d{2})/);return m?+m[1]*60+ +m[2]:null}
+function fmt(x){x=((x%1440)+1440)%1440;return String(Math.floor(x/60)).padStart(2,"0")+":"+String(x%60).padStart(2,"0")}
+function now(){let d=new Date();return d.getHours()*60+d.getMinutes()}
+function clock(){let d=new Date();document.querySelector("#clock").textContent=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
+function buttons(id,type){let box=document.querySelector(id);STORES.forEach(s=>{let b=document.createElement("button");b.textContent=(DISPLAY_NAMES[s]||s);b.onclick=()=>{if(type==="o")origin=s;else destination=s;mark();if(origin&&destination)calc()};box.appendChild(b)})}
+function mark(){document.querySelectorAll("#orig button").forEach(b=>b.classList.toggle("selected",b.textContent===origin));document.querySelectorAll("#dest button").forEach(b=>b.classList.toggle("selected",b.textContent===destination))}
+
+function edgeAt(e, earliest, enforceCut=true){
+  const dep=min(e[3]), arr=min(e[4]);
+  if(dep===null || arr===null) return null;
+
+  const cutText=e[5] ? String(e[5]) : "";
+  const cut=cutText ? min(cutText) : null;
+
+  for(let day=0;day<=3;day++){
+    const depAbs=day*1440+dep;
+    let arrAbs=day*1440+arr;
+    if(arr<dep) arrAbs+=1440;
+
+    if(depAbs<earliest) continue;
+
+    // H.PEDIDO solo se comprueba contra la hora real de la consulta
+    // (primera salida). Una vez aceptado el traspaso, los siguientes
+    // tramos de la misma cadena no vuelven a aplicar ese límite.
+    if(enforceCut && cut!==null && !cutText.includes("D/A")){
+      const requestDay=day*1440+cut;
+      if(earliest>requestDay) continue;
+    }
+
+    return {
+      route:e[0], from:e[1], to:e[2],
+      dep:depAbs, arr:arrAbs, cut:e[5] || ""
+    };
+  }
+  return null;
+}
+
+function findPath(from,to,start){
+  if(from===to)return {same:true};
+
+  // Dijkstra sobre los horarios: en cada enlace se toma la primera salida
+  // disponible después de la llegada al nodo. El límite H.PEDIDO se aplica
+  // únicamente al primer tramo, porque la consulta se hace una sola vez.
+  const dist={}, prev={}, firstHop={};
+  STORES.forEach(s=>dist[s]=Infinity);
+  dist[from]=start;
+
+  const used=new Set();
+
+  while(true){
+    let u=null,best=Infinity;
+    for(const s of STORES){
+      if(!used.has(s) && dist[s]<best){best=dist[s];u=s;}
+    }
+    if(u===null) break;
+    used.add(u);
+    if(u===to) break;
+
+    for(const e of LEGS){
+      if(e[1]!==u) continue;
+
+      const isFirst=(u===from);
+      const edge=edgeAt(e,dist[u],isFirst);
+      if(!edge) continue;
+
+      if(edge.arr<dist[e[2]]){
+        dist[e[2]]=edge.arr;
+        prev[e[2]]={store:u,edge};
+      }
+    }
+  }
+
+  if(!prev[to]) return null;
+
+  const legs=[];
+  let cur=to;
+  while(cur!==from){
+    const p=prev[cur];
+    if(!p)return null;
+    legs.unshift(p.edge);
+    cur=p.store;
+  }
+
+  return {
+    legs,
+    kind:legs.some(e=>e.from==="ATALAYAS"||e.to==="ATALAYAS")?"via":"direct"
+  };
+}
+function dayLabel(abs){
+  const d=Math.floor(abs/1440);
+  if(d===0)return 'hoy';
+  if(d===1)return 'mañana';
+  return 'día siguiente';
+}
+
+function calc(){
+  const out=document.querySelector("#result");
+  const n=now();
+
+  if(origin===destination){
+    out.innerHTML='<div class="result"><div class="big">Mismo almacén.</div></div>';
+    return;
+  }
+
+  const p=findPath(origin,destination,n);
+
+  if(!p){
+    out.innerHTML=
+      '<div class="result">'+
+      '<div class="big">🔴 No hay conexión disponible.</div>'+
+      '<div>Puede que la salida ya haya pasado, que falte una conexión o que la ruta esté pendiente.</div>'+
+      '<div class="warn">⚠️ <b>No olvides terminar el traspaso interno.</b></div>'+
+      '</div>';
+    return;
+  }
+
+  const last=p.legs[p.legs.length-1];
+
+  let s=
+    '<div class="result">'+
+    '<div class="big">🟢 Llega '+dayLabel(last.arr)+' a las '+fmt(last.arr)+'</div>'+
+    '<b>'+origin+' → '+destination+'</b>'+
+    '<div class="steps">';
+
+  p.legs.forEach(e=>{
+    s+=
+      '<div class="step">'+
+      '<b>'+e.from+' → '+e.to+'</b><br>'+
+      e.route+' · sale '+fmt(e.dep)+' · llega '+fmt(e.arr)+
+      (e.cut?' · H.PEDIDO '+e.cut:'')+
+      '</div>';
+  });
+
+  s+='</div>';
+
+  if(p.kind==="via"){
+    s+='<div class="muted" style="margin-top:9px">🏢 Conexión realizada mediante Atalayas.</div>';
+  }
+
+  s+='<div class="warn">⚠️ <b>No olvides terminar el traspaso interno.</b></div></div>';
+  out.innerHTML=(DISPLAY_NAMES[s]||s);
+}
+
+buttons("#orig","o");buttons("#dest","d");
+document.querySelector("#tests").innerHTML="";
+TESTS.forEach(t=>{let b=document.createElement("button");b.className="test";b.innerHTML="<b>"+t[0]+" → "+t[1]+"</b><br><span class='muted'>prueba</span>";b.onclick=()=>{origin=t[0];destination=t[1];mark();calc()};document.querySelector("#tests").appendChild(b)});
+clock();setInterval(clock,1000);
+</script></body></html>
