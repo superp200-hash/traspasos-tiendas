@@ -100,9 +100,10 @@ const STORE_INFO={
 };
 
 // Alertas de UN DÍA (festivos, incidencias...): se muestran en rojo solo ese día y solo si la tienda está seleccionada.
+// 'hasta' (opcional): hora a la que la alerta se quita sola ese mismo día, ej. hasta:"20:00".
 // Mientras estén activas, sustituyen al aviso normal de esa tienda. Al pasar la fecha desaparecen solas.
 const DAY_ALERTS=[
-  {fecha:"2026-10-22",tiendas:["CALPE"],titulo:"HOY FESTIVO LOCAL EN CALPE",lineas:[
+  {fecha:"2026-10-22",hasta:"20:00",tiendas:["CALPE"],titulo:"HOY FESTIVO LOCAL EN CALPE",lineas:[
     "Tienda a puerta cerrada.",
     "El reparto sigue normal en las rutas de fuera de Calpe.",
     "En Calpe solo hay 1 repartidor.",
@@ -260,7 +261,7 @@ function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMo
 function renderStoreAlerts(){
   const sel=[...new Set([origin,destination].filter(Boolean))],today=todayStr();let h='';
   sel.forEach(st=>{
-    const day=DAY_ALERTS.filter(a=>a.fecha===today&&a.tiendas.includes(st));
+    const day=DAY_ALERTS.filter(a=>a.fecha===today&&(!a.hasta||nowMin()<min(a.hasta))&&a.tiendas.includes(st));
     day.forEach(a=>{h+='<div class="alerta" role="alert"><div class="tt">🚫 '+a.titulo+' '+a.fecha.split('-').reverse().join('/')+'</div>'+a.lineas.map(l=>'<div class="ln">'+l+'</div>').join('')+'</div>'});
     const i=STORE_INFO[st];if(!i)return;
     const av=day.length?[]:(i.avisos||[]);
