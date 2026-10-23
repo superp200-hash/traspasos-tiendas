@@ -263,6 +263,10 @@ function renderBefore(){const box=document.querySelector('#before');if(!destinat
   items.sort((a,b)=>((a.arr===null)-(b.arr===null))||(a.arr-b.arr));
   box.innerHTML='<div class="before"><h3>Antes de '+(DISPLAY_NAMES[destination]||destination)+' en su ruta · el que llega antes, primero</h3><div class="chips">'+items.map((x,i)=>'<button type="button" class="chip'+(i===0&&x.arr!==null?' best':'')+'" data-store="'+x.st+'">'+(DISPLAY_NAMES[x.st]||x.st)+'<span>'+(x.arr===null?'sin enlace directo':'llega '+fmt(x.arr)+dayTag(x.arr))+' · '+x.rs+'</span></button>').join('')+'</div></div>';
   box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{origin=b.dataset.store;mark();calc();renderStoreAlerts()})}
+// Agrupa los repartos que tienen EXACTAMENTE el mismo horario en una sola línea ("Banyeres / Benejama: ...") y ordena alfabéticamente
+function groupRepartos(list){const cmp=(a,b)=>a.localeCompare(b,'es',{sensitivity:'base'});const m=new Map();
+  list.forEach(r=>{const k=r.indexOf(': ');if(k<0){m.set('\u0000'+r,{n:[r],t:null});return}const nm=r.slice(0,k),t=r.slice(k+2);if(!m.has(t))m.set(t,{n:[],t});m.get(t).n.push(nm)});
+  return [...m.values()].map(g=>{g.n.sort(cmp);return g.t===null?g.n[0]:g.n.join(' / ')+': '+g.t}).sort(cmp)}
 function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function renderStoreAlerts(){
   const sel=[...new Set([origin,destination].filter(Boolean))],today=todayStr();let h='';
@@ -271,7 +275,7 @@ function renderStoreAlerts(){
     day.forEach(a=>{h+='<div class="alerta" role="alert"><div class="tt">🚫 '+a.titulo+' '+a.fecha.split('-').reverse().join('/')+'</div>'+a.lineas.map(l=>'<div class="ln">'+l+'</div>').join('')+'</div>'});
     const i=STORE_INFO[st];if(!i)return;
     const av=day.length?[]:(i.avisos||[]);
-    const rpAll=i.repartos||[];const rp=[...rpAll.filter(r=>!r.startsWith('(')).sort((a,b)=>a.localeCompare(b,'es',{sensitivity:'base'})),...rpAll.filter(r=>r.startsWith('('))];
+    const rpAll=i.repartos||[];const rp=[...groupRepartos(rpAll.filter(r=>!r.startsWith('('))),...rpAll.filter(r=>r.startsWith('('))];
     if(!av.length&&!rp.length)return;
     h+='<div class="storebox"><div class="'+(av.length?'warn':'info')+'"><div class="nm">'+(DISPLAY_NAMES[st]||st)+'</div>'+av.map(a=>'<div class="ln">⚠️ '+a+'</div>').join('')+rp.map(r=>r.startsWith('(')?'<div class="ln small">'+r+'</div>':'<div class="ln">🚚 '+r+'</div>').join('')+'</div></div>'});
   document.querySelector('#store-alerts').innerHTML=h}
