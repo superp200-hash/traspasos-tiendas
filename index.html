@@ -32,7 +32,7 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.35</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.36</span></h1>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
 <div class="pickers">
@@ -81,7 +81,7 @@ const STORE_INFO={
     "Biar: reparto desde tienda",
     "Jumilla: 08:15 · 11:45 · 15:30 · 18:30"
   ]},
-  "ELCHE SECTOR":{avisos:[],repartos:[
+  "ELCHE SECTOR":{avisos:["CERRADO AL PÚBLICO DE 13:30 A 16:00","SE QUEDA UN REPARTIDOR REPARTIENDO","HASTA LAS 16:00 NO SE ATIENDEN TELÉFONOS, WASAPS NI CHATS"],repartos:[
     "La Marina: 09:00 · 10:15 · 11:30 · 12:45 · 16:15 · 18:00",
     "Las Bayas: 09:00 · 10:15 · 11:30 · 12:45 · 16:15 · 18:00",
     "Santa Pola: 09:00 · 10:15 · 11:30 · 12:45 · 16:15 · 18:00",
@@ -291,6 +291,14 @@ function renderStoreAlerts(){
     if(!av.length&&!rp.length)return;
     h+='<div class="storebox"><div class="'+(av.length?'warn':'info')+'"><div class="nm">'+(DISPLAY_NAMES[st]||st)+'</div>'+av.map(a=>'<div class="ln">⚠️ '+a+'</div>').join('')+rp.map(r=>r.startsWith('(')?'<div class="ln small">'+r+'</div>':'<div class="ln">🚚 '+r+'</div>').join('')+'</div></div>'});
   document.querySelector('#store-alerts').innerHTML=h}
-buttons('#orig','o');buttons('#dest','d');clock();setInterval(clock,1000);renderStoreAlerts();
+buttons('#orig','o');buttons('#dest','d');
+// Recupera la selección si la página se ha recargado sola por una versión nueva
+try{const sv=JSON.parse(sessionStorage.getItem('tr_sel')||'null');sessionStorage.removeItem('tr_sel');if(sv){if(STORES.includes(sv.o))origin=sv.o;if(STORES.includes(sv.d))destination=sv.d;mark()}}catch(e){}
+// Auto-actualización: cada 2 min y al volver a la pestaña compara su versión con la publicada; si es distinta, recarga sola conservando origen y destino
+(function(){const cur=document.querySelector('.version-badge').textContent.trim();
+  async function check(){try{const base=location.href.split('#')[0].split('?')[0];const r=await fetch(base+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return;const t=await r.text();const m=t.match(/class="version-badge">([^<]+)</);
+    if(m&&m[1].trim()!==cur){try{sessionStorage.setItem('tr_sel',JSON.stringify({o:origin,d:destination}))}catch(e){}location.href=base+'?v='+encodeURIComponent(m[1].trim())}}catch(e){}}
+  setInterval(check,120000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});window.addEventListener('focus',check)})();
+clock();setInterval(clock,1000);renderStoreAlerts();
 </script>
 </body></html>
