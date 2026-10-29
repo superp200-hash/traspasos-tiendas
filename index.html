@@ -32,7 +32,7 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.33</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.34</span></h1>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
 <div class="pickers">
@@ -202,6 +202,10 @@ function min(s){let m=String(s).match(/(\d{1,2}):(\d{2})/);return m?+m[1]*60+ +m
 // Norma: cualquier hora de pedido a partir de las 19:15 se muestra como 19:15 (conserva el D/A)
 // Norma 2: si la salida es antes de las 08:00, la hora de corte es 19:15 del día anterior (19:15 D/A)
 function pedidoText(t,dep){if(/D\/A/.test(String(t))&&min(t)<=19*60+15)return String(t).replace(/(\d{1,2}):(\d{2})/,m=>fmt(min(m)));if(dep!==undefined&&((dep%1440)+1440)%1440<8*60)return '19:15 D/A';return String(t).replace(/(\d{1,2}):(\d{2})/,(m)=>min(m)>19*60+15?'19:15':m)}
+// Instante (minutos absolutos desde las 00:00 de hoy) hasta el que se puede pedir un viaje: manda la hora de PEDIDO/corte, no la de salida
+function cutoffAbs(t,dep){const base=Math.floor(dep/1440)*1440,dm=dep-base,txt=String(t),da=/D\/A/.test(txt),m0=min(txt),LIM=19*60+15;
+  if(dm<8*60)return base-1440+((da&&m0<=LIM)?m0:LIM);
+  return (da?base-1440:base)+Math.min(m0,LIM)}
 function fmt(x){x=((x%1440)+1440)%1440;return String(Math.floor(x/60)).padStart(2,"0")+":"+String(x%60).padStart(2,"0")}
 function edge(e, earliest){const dep=min(e[3]),arr=min(e[4]);let base=Math.floor(earliest/1440)*1440;let depAbs=base+dep;if(depAbs<earliest)depAbs+=1440;let dur=((arr-dep)+1440)%1440;let arrAbs=depAbs+dur; if(String(e[4]).includes("D/S")) arrAbs=Math.max(arrAbs,depAbs)+0; return {dep:depAbs,arr:arrAbs,edge:e}}
 function findEarliest(from,to,start,firstLeg){
@@ -243,7 +247,7 @@ function calc(){renderBefore();const out=document.querySelector('#result'); if(!
   let s='<div class="result"><div class="big">'+(DISPLAY_NAMES[origin]||origin)+' → '+(DISPLAY_NAMES[destination]||destination)+'</div><div class="steps">';
   const now=nowMin();
   const dsf=x=>{const n=Math.floor(x/1440);return n<=0?'':n===1?' D/S':' +'+n+'D'};
-  const items=r.paths.map(p=>{const f=p.legs[0],l=p.legs[p.legs.length-1];return {pedido:f.edge[5],dep:f.dep,arr:l.arr,past:f.dep<now,next:false}});
+  const items=r.paths.map(p=>{const f=p.legs[0],l=p.legs[p.legs.length-1];return {pedido:f.edge[5],dep:f.dep,arr:l.arr,past:f.dep<now||cutoffAbs(f.edge[5],f.dep)<now,next:false}});
   // Si ya han pasado todos los viajes de hoy, el primero de mañana se muestra en verde
   if(items.length&&items.every(x=>x.past)){const b=items[0];items.push({pedido:b.pedido,dep:b.dep+1440,arr:b.arr+1440,past:false,next:true})}
   // Primero los disponibles (el más próximo resaltado) y al final los ya pasados
