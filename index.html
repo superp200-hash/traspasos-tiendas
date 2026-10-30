@@ -32,7 +32,7 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.38</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.39</span></h1>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
 <div class="pickers">
@@ -66,7 +66,7 @@ const STORE_INFO={
     "Teulada / Moraira: 08:00 · 09:00 · 10:00 · 11:00 · 12:00 · 15:00 · 16:00 · 17:00",
     "Jalón: 08:00 · 09:00 · 10:00 · 11:00 · 12:00 · 14:00 · 15:00 · 16:00 · 17:00"
   ]},
-  "BENIDORM":{avisos:[],repartos:[
+  "BENIDORM":{avisos:["SALIDA 12:30 A 00: LLEGADA 14:00. CON SUERTE LLEGA 13:30, PERO NO ES SEGURO"],repartos:[
     "La Nucia: 08:15 · 09:30 · 10:45 · 12:00 · 13:15 · 14:15 · 15:30 · 16:30",
     "Altea: 08:15 · 09:30 · 10:45 · 12:00 · 13:15 · 14:15 · 15:30 · 16:30 · 17:30",
     "Benidorm: 08:15 · 09:30 · 10:30 · 11:30 · 12:30 · 13:30 · 14:30 · 16:00 · 17:30 · 18:15",
@@ -173,7 +173,10 @@ const LEGS=[
 // RUTA 10: 00 -> 03 BENIDORM -> 21 CALPE (-> 15 ONDARA -> 03 BENIDORM -> 00 solo en el viaje de la tarde; las X no se cargan)
 ["R10","ATALAYAS","BENIDORM","05:45","06:40","05:45"],["R10","BENIDORM","CALPE","06:40","07:40","19:15 D/A"],["R10","CALPE","ATALAYAS","07:40","09:15","19:15 D/A"],
 ["R10","ATALAYAS","BENIDORM","10:30","11:10","10:30"],["R10","BENIDORM","CALPE","11:10","12:15","11:00"],
-["R10","ATALAYAS","BENIDORM","13:20","14:05","13:20"],["R10","BENIDORM","CALPE","14:05","14:35","13:30"],["R10","CALPE","ONDARA","14:35","15:15","13:30"],["R10","ONDARA","BENIDORM","19:05","20:00","18:00"],["R10","BENIDORM","ATALAYAS","20:00","21:15","19:15"],
+["R10","ATALAYAS","BENIDORM","13:20","14:05","13:20"],["R10","BENIDORM","CALPE","14:05","14:35","13:30"],["R10","CALPE","ONDARA","14:35","15:15","13:30"],["R10","ONDARA","BENIDORM","18:10","19:05","18:00"],["R10","BENIDORM","ATALAYAS","19:30","20:30","19:00"],
+// RUTA 10B: salidas directas 03 BENIDORM -> 00 (la de las 12:30 llega normalmente 13:30 pero a veces se retrasa: se carga 14:00)
+["R10B","BENIDORM","ATALAYAS","08:30","09:20","08:15"],
+["R10B","BENIDORM","ATALAYAS","12:30","14:00","12:20"],
 // RUTA 11: 28 HELLIN -> 08 ALBACETE -> 00 (solo sentido hacia 00)
 ["R11","HELLIN","ALBACETE","13:45","14:30","13:30"],["R11","ALBACETE","ATALAYAS","14:30","17:30","13:30"],
 ["R11","HELLIN","ALBACETE","17:15","18:00","17:00"],["R11","ALBACETE","ATALAYAS","18:00","10:15 D/S","19:15"],
