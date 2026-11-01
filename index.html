@@ -22,6 +22,10 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 .trip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:6px}.trip .lbl{display:block;font-size:12px;color:#667085;font-weight:700}.trip .val{display:block;font-size:22px;font-weight:800}
 .step.ok,.step.past{border-radius:10px;padding:10px 12px;margin-top:8px;border:0;border-left:5px solid}.step.ok{background:#e7f6ec;border-left-color:#16a34a}.step.past{background:#fdecea;border-left-color:#d92d20}.step.past .val{color:#b42318}.step.ok .val{color:#166534}.tag{float:right;font-size:12px;font-weight:800}.step.ok .tag{color:#166534}.step.past .tag{color:#b42318}
 .step.first{background:#d1fae5;box-shadow:0 0 0 2px #16a34a}.step.first .tag{font-size:13px}
+/* El viaje PRÓXIMO (el primero disponible) parpadea en verde; se desactiva si el dispositivo pide menos movimiento */
+@keyframes proximoPulso{0%,100%{background:#d1fae5;box-shadow:0 0 0 2px #16a34a,0 0 0 0 rgba(22,163,74,.5)}50%{background:#86efac;box-shadow:0 0 0 3px #15803d,0 0 16px 5px rgba(22,163,74,.55)}}
+.step.first{animation:proximoPulso 1.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.step.first{animation:none}}
 .info{margin-top:12px;padding:12px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:8px}.storebox{margin-top:12px}.storebox .nm{font-weight:800;margin-bottom:4px}.storebox .ln{font-size:14px;margin-top:3px}
 .warn .ln{font-size:17px;font-weight:800;color:#92400e}.warn .nm{font-size:15px}
 .before{margin-top:14px;padding:12px;border-radius:12px;background:#f7f8fa}.before h3{margin:0 0 8px;font-size:13px}.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{min-height:0;padding:6px 10px;text-align:left;font-size:13px;line-height:1.3}.chip span{display:block;font-weight:600;font-size:12px;color:#667085}.chip.best{border-color:#16a34a;background:#e7f6ec}.chip.best span{color:#166534}
@@ -37,7 +41,7 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.40</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.41</span></h1>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
 <div class="pickers">
@@ -261,8 +265,8 @@ function calc(){renderBefore();const out=document.querySelector('#result'); if(!
   const now=nowMin();
   const dsf=x=>{const n=Math.floor(x/1440);return n<=0?'':n===1?' D/S':' +'+n+'D'};
   const items=r.paths.map(p=>{const f=p.legs[0],l=p.legs[p.legs.length-1];return {pedido:f.edge[5],dep:f.dep,arr:l.arr,past:f.dep<now||cutoffAbs(f.edge[5],f.dep)<now,next:false}});
-  // Si ya han pasado todos los viajes de hoy, el primero de mañana se muestra en verde
-  if(items.length&&items.every(x=>x.past)){const b=items[0];items.push({pedido:b.pedido,dep:b.dep+1440,arr:b.arr+1440,past:false,next:true})}
+  // Si ya han pasado todos los viajes de hoy, el primero pasa a mañana en verde (sustituye al de hoy, para que no salga repetido)
+  if(items.length&&items.every(x=>x.past)){const b=items.shift();items.push({pedido:b.pedido,dep:b.dep+1440,arr:b.arr+1440,past:false,next:true})}
   // Primero los disponibles (el más próximo resaltado) y al final los ya pasados
   items.sort((a,b)=>(a.past-b.past)||(a.dep-b.dep));
   const firstIdx=items.findIndex(x=>!x.past);
