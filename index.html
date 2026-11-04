@@ -42,7 +42,7 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.47</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.48</span></h1>
 <div id="stats" class="small" aria-live="polite"></div>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
@@ -210,6 +210,9 @@ const LEGS=[
 ["R18","ATALAYAS","VILLAJOYOSA","06:45","07:30","06:40"],["R18","ATALAYAS","VILLAJOYOSA","10:30","11:15","10:25"],
 ["R18","VILLAJOYOSA","ATALAYAS","08:30","09:15","08:25"],["R18","VILLAJOYOSA","ATALAYAS","12:45","13:30","12:40"]
 ];
+// NORMA para TODAS las salidas de 00 ATALAYAS: hora de pedido = 10 min antes de la salida; corte del TRANSELEVADOR = 30 min antes.
+// (Las salidas antes de las 08:00 siguen con su corte del día anterior 19:15 D/A y no llevan corte de transelevador aparte. Si un tramo ya trae su corte de transelevador escrito a mano, se respeta.)
+LEGS.forEach(e=>{if(e[1]==='ATALAYAS'){const d=min(e[3]);e[5]=fmt(d-10);if(!e[6]&&d>=8*60)e[6]=fmt(d-30)}});
 
 // ============================================================
 // LÓGICA (no hace falta tocar)
