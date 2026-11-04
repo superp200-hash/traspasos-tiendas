@@ -41,7 +41,8 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.45</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.46</span></h1>
+<div id="stats" class="small" aria-live="polite"></div>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
 <div class="pickers">
@@ -273,7 +274,7 @@ function calc(){renderBefore();const out=document.querySelector('#result'); if(!
   items.forEach((x,i)=>{const first=i===firstIdx;s+='<div class="step '+(x.past?'past':'ok')+(first?' first':'')+'"><b>Viaje '+(i+1)+'</b><span class="tag">'+(x.past?'YA PASADO':(first?'PRÓXIMO':'DISPONIBLE')+(x.next?' · MAÑANA':''))+'</span><div class="trip"><div><span class="lbl">H. PEDIDO</span><span class="val">'+pedidoText(x.pedido,x.dep)+'</span></div><div><span class="lbl">SALIDA</span><span class="val">'+fmt(x.dep)+dsf(x.dep)+'</span></div><div><span class="lbl">LLEGADA</span><span class="val">'+fmt(x.arr)+dsf(x.arr)+'</span></div></div></div>'});
   s+='</div></div>';out.innerHTML=s;
 }
-function buttons(id,type){const box=document.querySelector(id);if(!STORES.length){box.innerHTML='<div class="small">Sin tiendas cargadas.</div>';return}[...STORES].sort((a,b)=>(DISPLAY_NAMES[a]||a).localeCompare(DISPLAY_NAMES[b]||b,'es',{numeric:true})).forEach(s=>{const b=document.createElement('button');b.type='button';b.dataset.store=s;b.textContent=DISPLAY_NAMES[s]||s;b.onclick=()=>{if(type==='o')origin=s;else destination=s;mark();calc();renderStoreAlerts()};box.appendChild(b)})}
+function buttons(id,type){const box=document.querySelector(id);if(!STORES.length){box.innerHTML='<div class="small">Sin tiendas cargadas.</div>';return}[...STORES].sort((a,b)=>(DISPLAY_NAMES[a]||a).localeCompare(DISPLAY_NAMES[b]||b,'es',{numeric:true})).forEach(s=>{const b=document.createElement('button');b.type='button';b.dataset.store=s;b.textContent=DISPLAY_NAMES[s]||s;b.onclick=()=>{if(type==='o')origin=s;else destination=s;mark();calc();renderStoreAlerts();contarConsulta()};box.appendChild(b)})}
 function mark(){document.querySelectorAll('#orig button').forEach(b=>b.classList.toggle('selected',b.dataset.store===origin));document.querySelectorAll('#dest button').forEach(b=>b.classList.toggle('selected',b.dataset.store===destination))}
 let lastMin=-1;
 function nowMin(){const d=new Date();return d.getHours()*60+d.getMinutes()}
@@ -308,6 +309,22 @@ function renderStoreAlerts(){
     if(!av.length&&!rp.length)return;
     h+='<div class="storebox"><div class="'+(av.length?'warn':'info')+'"><div class="nm">'+(DISPLAY_NAMES[st]||st)+'</div>'+av.map(a=>'<div class="ln">⚠️ '+a+'</div>').join('')+rp.map(r=>r.startsWith('(')?'<div class="ln small">'+r+'</div>':'<div class="ln">🚚 '+r+'</div>').join('')+'</div></div>'});
   document.querySelector('#store-alerts').innerHTML=h}
+// Contadores (servicio gratuito, solo números): consultas totales y conectados en los últimos 5 minutos
+const CNT='https://abacus.jasoncameron.dev',NS='adserca-traspasos-alicante';
+let nConsultas=null,nConectados=null;
+function pintarStats(){const el=document.getElementById('stats');if(!el)return;const p=[];
+  if(nConsultas!=null)p.push('🔎 '+nConsultas.toLocaleString('es-ES')+' consultas');
+  if(nConectados!=null)p.push('🟢 '+nConectados+' conectado'+(nConectados===1?'':'s'));
+  el.textContent=p.join(' · ')}
+async function contador(accion,clave){try{const r=await fetch(CNT+'/'+accion+'/'+NS+'/'+clave,{cache:'no-store'});if(!r.ok)return 0;const j=await r.json();return j.value||0}catch(e){return null}}
+async function presencia(){const t=Math.floor(Date.now()/300000),clave='online-'+t;let marcado='';try{marcado=sessionStorage.getItem('presencia')||''}catch(e){}
+  if(marcado!==clave){await contador('hit',clave);try{sessionStorage.setItem('presencia',clave)}catch(e){}}
+  const a=await contador('get',clave),b=await contador('get','online-'+(t-1));if(a!=null){nConectados=Math.max(a,b||0,1);pintarStats()}}
+contador('get','consultas').then(v=>{if(v!=null){nConsultas=v;pintarStats()}});
+presencia();setInterval(presencia,60000);
+// Se cuenta una consulta cuando hay origen y destino distintos y la pareja cambia (con 2 s de espera para no contar clics seguidos)
+let ultimaPareja='',tConsulta=null;
+function contarConsulta(){clearTimeout(tConsulta);tConsulta=setTimeout(async()=>{if(!origin||!destination||origin===destination)return;const k=origin+'>'+destination;if(k===ultimaPareja)return;ultimaPareja=k;const n=await contador('hit','consultas');if(n){nConsultas=n;pintarStats()}},2000)}
 buttons('#orig','o');buttons('#dest','d');
 // Recupera la selección si la página se ha recargado sola por una versión nueva
 try{const sv=JSON.parse(sessionStorage.getItem('tr_sel')||'null');sessionStorage.removeItem('tr_sel');if(sv){if(STORES.includes(sv.o))origin=sv.o;if(STORES.includes(sv.d))destination=sv.d;mark()}}catch(e){}
