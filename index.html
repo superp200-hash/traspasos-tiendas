@@ -21,6 +21,7 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 
 .trip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:6px}.trip .lbl{display:block;font-size:12px;color:#667085;font-weight:700}.trip .val{display:block;font-size:22px;font-weight:800}
 .step.ok,.step.past{border-radius:10px;padding:10px 12px;margin-top:8px;border:0;border-left:5px solid}.step.ok{background:#e7f6ec;border-left-color:#16a34a}.step.past{background:#fdecea;border-left-color:#d92d20}.step.past .val{color:#b42318}.step.ok .val{color:#166534}.tag{float:right;font-size:12px;font-weight:800}.step.ok .tag{color:#166534}.step.past .tag{color:#b42318}
+.trn{display:block;margin-top:3px;font-size:11px;font-weight:800;color:#854d0e}.trn-no{color:#b42318}
 .step.first{background:#d1fae5;box-shadow:0 0 0 2px #16a34a}.step.first .tag{font-size:13px}
 /* El viaje PRÓXIMO (el primero disponible) parpadea en verde; se desactiva si el dispositivo pide menos movimiento */
 @keyframes proximoPulso{0%,100%{background:#d1fae5;box-shadow:0 0 0 2px #16a34a,0 0 0 0 rgba(22,163,74,.5)}50%{background:#86efac;box-shadow:0 0 0 3px #15803d,0 0 16px 5px rgba(22,163,74,.55)}}
@@ -41,7 +42,7 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.46</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.47</span></h1>
 <div id="stats" class="small" aria-live="polite"></div>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
@@ -139,15 +140,16 @@ const DAY_ALERTS=[
 
 // 4) Cruces/tramos: [ruta, origen, destino, salida, llegada, hora_pedido]
 // Ej: ["R01","TIENDA A","TIENDA B","08:00","09:00","07:45"]
+// 7º campo OPCIONAL: hora de corte del TRANSELEVADOR (se muestra aparte de la hora de pedido), ej. [...,"07:45","13:55"]
 const LEGS=[
 // RUTA 01: 00 -> ALICANTE -> ALICANTE NORTE -> ALICANTE -> 00
 ["R01","ATALAYAS","ALICANTE","07:30","08:05","07:30"],["R01","ALICANTE","ALICANTE NORTE","08:05","08:45","19:30 D/A"],["R01","ALICANTE NORTE","ALICANTE","08:45","09:45","08:35"],["R01","ALICANTE","ATALAYAS","09:45","10:00","09:30"],
 ["R01","ATALAYAS","ALICANTE","10:50","11:15","10:50"],["R01","ALICANTE","ALICANTE NORTE","11:15","11:50","11:00"],["R01","ALICANTE NORTE","ALICANTE","11:50","12:45","11:40"],["R01","ALICANTE","ATALAYAS","12:45","13:00","12:30"],
-["R01","ATALAYAS","ALICANTE","15:00","15:30","15:00"],["R01","ALICANTE","ALICANTE NORTE","15:30","16:00","13:50"],["R01","ALICANTE NORTE","ALICANTE","16:00","16:45","13:50"],["R01","ALICANTE","ATALAYAS","16:45","17:00","16:25"],
+["R01","ATALAYAS","ALICANTE","14:30","15:00","14:20","13:55"],["R01","ALICANTE","ALICANTE NORTE","15:30","16:00","13:50"],["R01","ALICANTE NORTE","ALICANTE","16:00","16:45","13:50"],["R01","ALICANTE","ATALAYAS","16:45","17:00","16:25"],
 // RUTA 02: 00 -> SAN VICENTE -> MUCHAMIEL -> SAN VICENTE -> 00 (en el 2.º viaje no hay vuelta por SAN VICENTE)
 ["R02","ATALAYAS","SAN VICENTE","07:00","07:40","07:00"],["R02","SAN VICENTE","MUCHAMIEL","07:40","08:30","19:30 D/A"],["R02","MUCHAMIEL","SAN VICENTE","08:30","09:30","08:20"],["R02","SAN VICENTE","ATALAYAS","09:30","10:00","09:15"],
 ["R02","ATALAYAS","SAN VICENTE","10:30","10:30","10:30"],["R02","SAN VICENTE","MUCHAMIEL","10:30","11:30","10:25"],["R02","MUCHAMIEL","ATALAYAS","11:30","11:45","11:15"],
-["R02","ATALAYAS","SAN VICENTE","14:50","15:20","14:50"],["R02","SAN VICENTE","MUCHAMIEL","15:20","16:00","13:15"],["R02","MUCHAMIEL","SAN VICENTE","16:00","16:20","13:15"],["R02","SAN VICENTE","ATALAYAS","16:20","17:00","16:15"],
+["R02","ATALAYAS","SAN VICENTE","14:30","15:00","14:20","13:55"],["R02","SAN VICENTE","MUCHAMIEL","15:20","16:00","13:15"],["R02","MUCHAMIEL","SAN VICENTE","16:00","16:20","13:15"],["R02","SAN VICENTE","ATALAYAS","16:20","17:00","16:15"],
 // RUTA 03: 00 -> TORREVIEJA -> 00
 ["R03","ATALAYAS","TORREVIEJA","07:00","08:20","07:00"],["R03","TORREVIEJA","ATALAYAS","08:20","09:40","08:15"],
 ["R03","ATALAYAS","TORREVIEJA","10:30","11:40","10:30"],["R03","TORREVIEJA","ATALAYAS","11:40","12:40","11:30"],
@@ -224,6 +226,8 @@ function pedidoText(t,dep){if(/D\/A/.test(String(t))&&min(t)<=19*60+15)return St
 function cutoffAbs(t,dep){const base=Math.floor(dep/1440)*1440,dm=dep-base,txt=String(t),da=/D\/A/.test(txt),m0=min(txt),LIM=19*60+15;
   if(dm<8*60)return base-1440+((da&&m0<=LIM)?m0:LIM);
   return (da?base-1440:base)+Math.min(m0,LIM)}
+// Corte del transelevador (solo salidas de 00 que lo llevan): se avisa aparte y se marca si ya ha pasado hoy
+function trText(x){if(!x.tr)return '';const hoy=x.dep<1440,pasado=hoy&&nowMin()>min(x.tr);return '<span class="trn'+(pasado?' trn-no':'')+'">✂️ CORTE TRANSELEVADOR '+x.tr+(pasado?' · YA PASADO':'')+'</span>'}
 function fmt(x){x=((x%1440)+1440)%1440;return String(Math.floor(x/60)).padStart(2,"0")+":"+String(x%60).padStart(2,"0")}
 function edge(e, earliest){const dep=min(e[3]),arr=min(e[4]);let base=Math.floor(earliest/1440)*1440;let depAbs=base+dep;if(depAbs<earliest)depAbs+=1440;let dur=((arr-dep)+1440)%1440;let arrAbs=depAbs+dur; if(String(e[4]).includes("D/S")) arrAbs=Math.max(arrAbs,depAbs)+0; return {dep:depAbs,arr:arrAbs,edge:e}}
 function findEarliest(from,to,start,firstLeg){
@@ -265,13 +269,13 @@ function calc(){renderBefore();const out=document.querySelector('#result'); if(!
   let s='<div class="result"><div class="big">'+(DISPLAY_NAMES[origin]||origin)+' → '+(DISPLAY_NAMES[destination]||destination)+'</div><div class="steps">';
   const now=nowMin();
   const dsf=x=>{const n=Math.floor(x/1440);return n<=0?'':n===1?' D/S':' +'+n+'D'};
-  const items=r.paths.map(p=>{const f=p.legs[0],l=p.legs[p.legs.length-1];return {pedido:f.edge[5],dep:f.dep,arr:l.arr,past:f.dep<now||cutoffAbs(f.edge[5],f.dep)<now,next:false}});
+  const items=r.paths.map(p=>{const f=p.legs[0],l=p.legs[p.legs.length-1];return {pedido:f.edge[5],tr:f.edge[6]||'',dep:f.dep,arr:l.arr,past:f.dep<now||cutoffAbs(f.edge[5],f.dep)<now,next:false}});
   // Si ya han pasado todos los viajes de hoy, el primero pasa a mañana en verde (sustituye al de hoy, para que no salga repetido)
-  if(items.length&&items.every(x=>x.past)){const b=items.shift();items.push({pedido:b.pedido,dep:b.dep+1440,arr:b.arr+1440,past:false,next:true})}
+  if(items.length&&items.every(x=>x.past)){const b=items.shift();items.push({pedido:b.pedido,tr:b.tr,dep:b.dep+1440,arr:b.arr+1440,past:false,next:true})}
   // Primero los disponibles (el más próximo resaltado) y al final los ya pasados
   items.sort((a,b)=>(a.past-b.past)||(a.dep-b.dep));
   const firstIdx=items.findIndex(x=>!x.past);
-  items.forEach((x,i)=>{const first=i===firstIdx;s+='<div class="step '+(x.past?'past':'ok')+(first?' first':'')+'"><b>Viaje '+(i+1)+'</b><span class="tag">'+(x.past?'YA PASADO':(first?'PRÓXIMO':'DISPONIBLE')+(x.next?' · MAÑANA':''))+'</span><div class="trip"><div><span class="lbl">H. PEDIDO</span><span class="val">'+pedidoText(x.pedido,x.dep)+'</span></div><div><span class="lbl">SALIDA</span><span class="val">'+fmt(x.dep)+dsf(x.dep)+'</span></div><div><span class="lbl">LLEGADA</span><span class="val">'+fmt(x.arr)+dsf(x.arr)+'</span></div></div></div>'});
+  items.forEach((x,i)=>{const first=i===firstIdx;s+='<div class="step '+(x.past?'past':'ok')+(first?' first':'')+'"><b>Viaje '+(i+1)+'</b><span class="tag">'+(x.past?'YA PASADO':(first?'PRÓXIMO':'DISPONIBLE')+(x.next?' · MAÑANA':''))+'</span><div class="trip"><div><span class="lbl">H. PEDIDO</span><span class="val">'+pedidoText(x.pedido,x.dep)+'</span>'+trText(x)+'</div><div><span class="lbl">SALIDA</span><span class="val">'+fmt(x.dep)+dsf(x.dep)+'</span></div><div><span class="lbl">LLEGADA</span><span class="val">'+fmt(x.arr)+dsf(x.arr)+'</span></div></div></div>'});
   s+='</div></div>';out.innerHTML=s;
 }
 function buttons(id,type){const box=document.querySelector(id);if(!STORES.length){box.innerHTML='<div class="small">Sin tiendas cargadas.</div>';return}[...STORES].sort((a,b)=>(DISPLAY_NAMES[a]||a).localeCompare(DISPLAY_NAMES[b]||b,'es',{numeric:true})).forEach(s=>{const b=document.createElement('button');b.type='button';b.dataset.store=s;b.textContent=DISPLAY_NAMES[s]||s;b.onclick=()=>{if(type==='o')origin=s;else destination=s;mark();calc();renderStoreAlerts();contarConsulta()};box.appendChild(b)})}
