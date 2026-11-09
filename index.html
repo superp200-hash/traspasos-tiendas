@@ -42,7 +42,7 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.61</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.62</span></h1>
 <div id="stats" class="small" aria-live="polite"></div>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
@@ -61,10 +61,10 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 // ============================================================
 
 // 1) Tiendas (nombre interno, sin repetir). Ej: ["TIENDA A","TIENDA B"]
-const STORES=["ATALAYAS","ALICANTE","ALICANTE NORTE","SAN VICENTE","MUCHAMIEL","TORREVIEJA","HORADADA","ELCHE CARRUS","ELCHE SECTOR","ORIHUELA","ONDARA","ALMANSA","ALBACETE","IBI","ALCOY","ASPE","ELDA","VILLENA","BENIDORM","CALPE","HELLIN","VILLARROBLEDO","LA RODA","CUENCA","TARANCON","DENIA","JAVEA","VILLAJOYOSA","ELCHE INCA"];
+const STORES=["ATALAYAS","ALICANTE","ALICANTE NORTE","SAN VICENTE","MUCHAMIEL","TORREVIEJA","HORADADA","ELCHE CARRUS","ORIHUELA","ONDARA","ALMANSA","ALBACETE","IBI","ALCOY","ASPE","ELDA","VILLENA","BENIDORM","CALPE","HELLIN","VILLARROBLEDO","LA RODA","CUENCA","TARANCON","DENIA","JAVEA","VILLAJOYOSA","ELCHE INCA"];
 
 // 2) Nombre que se muestra en el botón. Ej: {"TIENDA A":"01 TIENDA A"}
-const DISPLAY_NAMES={"ATALAYAS":"00 ATALAYAS","ALICANTE":"01 ALICANTE","TORREVIEJA":"04 TORREVIEJA","HORADADA":"22 HORADADA","ORIHUELA":"06 ORIHUELA","ONDARA":"15 ONDARA","BENIDORM":"03 BENIDORM","CUENCA":"18 CUENCA","JAVEA":"25 JÁVEA","VILLAJOYOSA":"23 VILLAJOYOSA","ELCHE INCA":"29 ELCHE INCA","DENIA":"26 DENIA","TARANCON":"20 TARANCON","VILLARROBLEDO":"19 VILLARROBLEDO","LA RODA":"27 LA RODA","HELLIN":"28 HELLIN","CALPE":"21 CALPE","VILLENA":"05 VILLENA","ALCOY":"07 ALCOY","ELDA":"09 ELDA","ASPE":"24 ASPE","IBI":"30 IBI","ALBACETE":"08 ALBACETE","ALMANSA":"17 ALMANSA","ELCHE CARRUS":"11 ELCHE CARRUS","ELCHE SECTOR":"14 ELCHE SECTOR","MUCHAMIEL":"10 MUCHAMIEL","SAN VICENTE":"12 SAN VICENTE","ALICANTE NORTE":"16 ALICANTE NORTE"};
+const DISPLAY_NAMES={"ATALAYAS":"00 ATALAYAS","ALICANTE":"01 ALICANTE","TORREVIEJA":"04 TORREVIEJA","HORADADA":"22 HORADADA","ORIHUELA":"06 ORIHUELA","ONDARA":"15 ONDARA","BENIDORM":"03 BENIDORM","CUENCA":"18 CUENCA","JAVEA":"25 JÁVEA","VILLAJOYOSA":"23 VILLAJOYOSA","ELCHE INCA":"29 ELCHE INCA","DENIA":"26 DENIA","TARANCON":"20 TARANCON","VILLARROBLEDO":"19 VILLARROBLEDO","LA RODA":"27 LA RODA","HELLIN":"28 HELLIN","CALPE":"21 CALPE","VILLENA":"05 VILLENA","ALCOY":"07 ALCOY","ELDA":"09 ELDA","ASPE":"24 ASPE","IBI":"30 IBI","ALBACETE":"08 ALBACETE","ALMANSA":"17 ALMANSA","ELCHE CARRUS":"11 ELCHE CARRUS","MUCHAMIEL":"10 MUCHAMIEL","SAN VICENTE":"12 SAN VICENTE","ALICANTE NORTE":"16 ALICANTE NORTE"};
 
 // 3) Avisos y repartos por tienda: solo se muestran cuando esa tienda está seleccionada (origen o destino).
 //    avisos:   frases de aviso (ej. horario de cierre)
@@ -150,10 +150,6 @@ const DAY_ALERTS=[
   {fecha:"2026-11-02",desde:"2026-10-29",hasta:"20:00",tiendas:["ALMANSA","VILLENA","ALBACETE","VILLARROBLEDO","LA RODA","HELLIN","CUENCA","TARANCON"],titulo:"FESTIVO EN ALMANSA EL LUNES",lineas:[
     "Almansa cierra por festivo.",
     "Las llamadas y los AD360 se desvían a Villena."
-  ]},
-  {fecha:"2026-11-09",visibleHasta:"2026-11-16",tiendas:["ELCHE SECTOR"],titulo:"NO PEDIR A 14 --&gt; NUEVO ALMACÉN: 29 ELCHE INCA",lineas:[
-    "Tenemos almacén nuevo: ELCHE INCA, que es el 29.",
-    "Sus horarios se irán añadiendo."
   ]}
 ];
 
@@ -177,13 +173,12 @@ const LEGS=[
 ["R03B","HORADADA","TORREVIEJA","08:00","08:15","19:15 D/A"],["R03B","TORREVIEJA","HORADADA","08:15","09:10","08:10"],
 ["R03B","HORADADA","TORREVIEJA","10:30","11:00","10:15"],["R03B","TORREVIEJA","HORADADA","11:00","11:30","10:50"],
 ["R03B","HORADADA","TORREVIEJA","15:00","15:10","13:15"],["R03B","TORREVIEJA","HORADADA","15:10","16:00","13:15"],
-// RUTA 04: 00 -> 11 ELCHE CARRUS -> 14 ELCHE SECTOR -> 00
-["R04","ATALAYAS","ELCHE CARRUS","07:00","07:30","07:00"],["R04","ELCHE CARRUS","ELCHE SECTOR","07:30","08:00","19:15 D/A"],["R04","ELCHE SECTOR","ATALAYAS","08:00","09:30","19:15 D/A"],
-["R04","ATALAYAS","ELCHE CARRUS","10:30","10:55","10:30"],["R04","ELCHE CARRUS","ELCHE SECTOR","10:55","11:20","10:45"],["R04","ELCHE SECTOR","ATALAYAS","11:20","12:30","11:10"],
-["R04","ATALAYAS","ELCHE CARRUS","14:00","14:35","14:00"],["R04","ELCHE CARRUS","ELCHE SECTOR","14:35","15:00","14:00"],["R04","ELCHE SECTOR","ATALAYAS","15:00","16:40","14:00"],
-// RUTA 04 BIS: circuito cerrado SOLO entre 11 ELCHE CARRUS y 14 ELCHE SECTOR
-["R04B","ELCHE SECTOR","ELCHE CARRUS","10:15","10:30","10:15"],["R04B","ELCHE SECTOR","ELCHE CARRUS","13:00","16:00","13:00"],["R04B","ELCHE SECTOR","ELCHE CARRUS","17:30","18:00","17:30"],
-["R04B","ELCHE CARRUS","ELCHE SECTOR","17:30","18:00","17:30"],
+// RUTA 04: 00 -> 11 ELCHE CARRUS -> 29 ELCHE INCA -> 00  (desde nov 2026 el 14 ELCHE SECTOR desaparece; el 29 está a 200 m del 11, unos 10 min después)
+["R04","ATALAYAS","ELCHE CARRUS","07:00","07:30","07:00"],["R04","ELCHE CARRUS","ELCHE INCA","07:30","07:40","19:15 D/A"],["R04","ELCHE INCA","ATALAYAS","07:40","08:10","19:15 D/A"],
+["R04","ATALAYAS","ELCHE CARRUS","10:30","10:55","10:30"],["R04","ELCHE CARRUS","ELCHE INCA","10:55","11:05","10:45"],["R04","ELCHE INCA","ATALAYAS","11:05","11:35","10:55"],
+["R04","ATALAYAS","ELCHE CARRUS","14:00","14:35","14:00"],["R04","ELCHE CARRUS","ELCHE INCA","14:35","14:45","14:00"],["R04","ELCHE INCA","ATALAYAS","14:45","15:20","14:35"],
+// (Antes: R04 pasaba por 14 ELCHE SECTOR y existía la R04 BIS cerrada 11 <-> 14. Se retiran al desaparecer el 14.)
+
 // RUTA 05: 00 -> 06 ORIHUELA -> 00
 ["R05","ATALAYAS","ORIHUELA","07:00","08:50","07:00"],["R05","ORIHUELA","ATALAYAS","08:50","09:30","08:40"],
 ["R05","ATALAYAS","ORIHUELA","10:30","11:45","10:30"],["R05","ORIHUELA","ATALAYAS","11:45","12:30","11:30"],
@@ -266,7 +261,7 @@ function enumerate(from,to){
   if(from===to)return {same:true,paths:[]};
   // Circuitos cerrados: entre esos dos almacenes solo valen servicios directos (sin desvíos por 00)
   const pair=(x,y)=>(from===x&&to===y)||(from===y&&to===x);
-  const closedRoutes=pair('HORADADA','TORREVIEJA')?['R03B']:pair('ELCHE CARRUS','ELCHE SECTOR')?['R04','R04B']:pair('JAVEA','ONDARA')?['R17']:null;
+  const closedRoutes=pair('HORADADA','TORREVIEJA')?['R03B']:pair('JAVEA','ONDARA')?['R17']:null;
   const closed=!!closedRoutes;
   const pool=closed?LEGS.filter(e=>closedRoutes.includes(e[0])):LEGS_GEN;
   const firsts=pool.filter(e=>e[1]===from).sort((a,b)=>min(a[3])-min(b[3]));
