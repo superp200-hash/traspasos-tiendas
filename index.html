@@ -34,15 +34,18 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 /* Las alertas de día (festivos...) parpadean con un halo rojo para que se vean; se desactiva si el dispositivo pide menos movimiento */
 @keyframes alertaPulso{0%,100%{background:#fff0ef;box-shadow:0 0 0 2px #fda29b,0 0 0 0 rgba(180,35,24,.55)}50%{background:#ffd2cd;box-shadow:0 0 0 3px #b42318,0 0 18px 6px rgba(180,35,24,.55)}}
 @keyframes alertaTitulo{0%,100%{opacity:1}50%{opacity:.35}}
+.alerta.verde{border-left-color:#15803d;background:#ecfdf3;box-shadow:0 0 0 2px #86efac}.alerta.verde .tt{color:#15803d}.alerta.verde .ln{color:#14532d}
+@keyframes alertaPulsoVerde{0%,100%{background:#ecfdf3;box-shadow:0 0 0 2px #86efac,0 0 0 0 rgba(22,163,74,.55)}50%{background:#bbf7d0;box-shadow:0 0 0 3px #15803d,0 0 18px 6px rgba(22,163,74,.55)}}
+.alerta.verde{animation:alertaPulsoVerde 1.2s ease-in-out infinite}
 .alerta{animation:alertaPulso 1.2s ease-in-out infinite}.alerta .tt{animation:alertaTitulo 1.2s ease-in-out infinite}
-@media (prefers-reduced-motion:reduce){.alerta,.alerta .tt{animation:none}}
+@media (prefers-reduced-motion:reduce){.alerta,.alerta.verde,.alerta .tt{animation:none}}
 .alerta .fecha{margin-top:8px;font-size:13px;font-weight:700;color:#7a271a;opacity:.85}
 </style>
 </head>
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.62</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.63</span></h1>
 <div id="stats" class="small" aria-live="polite"></div>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
@@ -138,6 +141,7 @@ const STORE_INFO={
 // Alertas de UN DÍA (festivos, incidencias...): se muestran en rojo solo ese día y solo si la tienda está seleccionada.
 // 'hasta' (opcional): hora a la que la alerta se quita sola ese mismo día, ej. hasta:"20:00".
 // 'visibleHasta' (opcional): último día que se muestra, si dura más de un día (la fecha del título sigue siendo 'fecha'), ej. visibleHasta:"2026-11-16".
+// 'color' (opcional): "verde" para un aviso informativo en verde intermitente (por defecto es rojo).
 // 'desde' (opcional): fecha desde la que se muestra como recordatorio antes del día, ej. desde:"2026-10-29".
 // Mientras estén activas, sustituyen al aviso normal de esa tienda. Al pasar la fecha desaparecen solas.
 const DAY_ALERTS=[
@@ -150,6 +154,9 @@ const DAY_ALERTS=[
   {fecha:"2026-11-02",desde:"2026-10-29",hasta:"20:00",tiendas:["ALMANSA","VILLENA","ALBACETE","VILLARROBLEDO","LA RODA","HELLIN","CUENCA","TARANCON"],titulo:"FESTIVO EN ALMANSA EL LUNES",lineas:[
     "Almansa cierra por festivo.",
     "Las llamadas y los AD360 se desvían a Villena."
+  ]},
+  {fecha:"2026-11-10",visibleHasta:"2026-11-17",color:"verde",icono:"📱",tiendas:["ELCHE INCA"],titulo:"WHATSAPP DE TIENDA 663 042 900",lineas:[
+    "TELÉFONO DE CONTACTO: JOSÉ MANUEL PRIETO · 622 499 385"
   ]}
 ];
 
@@ -323,7 +330,7 @@ function renderStoreAlerts(){
   const sel=[...new Set([origin,destination].filter(Boolean))],today=todayStr();let h='';
   sel.forEach(st=>{
     const day=DAY_ALERTS.filter(a=>{const fin=a.visibleHasta||a.fecha;return today>=(a.desde||a.fecha)&&today<=fin&&(today!==fin||!a.hasta||nowMin()<min(a.hasta))&&a.tiendas.includes(st)});
-    day.forEach(a=>{h+='<div class="alerta" role="alert"><div class="tt">🚫 '+a.titulo+' '+a.fecha.split('-').reverse().join('/')+'</div>'+a.lineas.map(l=>'<div class="ln">'+l+'</div>').join('')+'</div>'});
+    day.forEach(a=>{h+='<div class="alerta'+(a.color==='verde'?' verde':'')+'" role="alert"><div class="tt">'+(a.icono||'🚫')+' '+a.titulo+' '+a.fecha.split('-').reverse().join('/')+'</div>'+a.lineas.map(l=>'<div class="ln">'+l+'</div>').join('')+'</div>'});
     const i=STORE_INFO[st];if(!i)return;
     const av=day.length?[]:(i.avisos||[]);
     const rpAll=i.repartos||[];const rp=[...groupRepartos(rpAll.filter(r=>!r.startsWith('('))),...rpAll.filter(r=>r.startsWith('('))];
