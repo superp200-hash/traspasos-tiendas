@@ -45,7 +45,7 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.63</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.64</span></h1>
 <div id="stats" class="small" aria-live="polite"></div>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
@@ -229,7 +229,10 @@ const LEGS=[
 ["R17","JAVEA","ONDARA","17:00","17:20","16:50"],["R17","ONDARA","JAVEA","17:20","17:30","17:10"],
 // RUTA 18: 00 <-> 23 VILLAJOYOSA (pedido 5 min antes de la salida)
 ["R18","ATALAYAS","VILLAJOYOSA","06:45","07:30","06:40"],["R18","ATALAYAS","VILLAJOYOSA","10:30","11:15","10:25"],
-["R18","VILLAJOYOSA","ATALAYAS","08:30","09:15","08:25"],["R18","VILLAJOYOSA","ATALAYAS","12:45","13:30","12:40"]
+["R18","VILLAJOYOSA","ATALAYAS","08:30","09:15","08:25"],["R18","VILLAJOYOSA","ATALAYAS","12:45","13:30","12:40"],
+// RUTA 19: circuito 23 VILLAJOYOSA <-> 03 BENIDORM. Entre ellos solo valen estos servicios directos; hacia/desde 00 y el resto se enlaza por 00 y por 03 (la vuelta sale de 03 al llegar; pedido 5 min antes de la salida)
+["R19","VILLAJOYOSA","BENIDORM","12:00","12:45","11:55"],["R19","BENIDORM","VILLAJOYOSA","12:45","13:20","12:40"],
+["R19","VILLAJOYOSA","BENIDORM","16:30","16:50","16:25"],["R19","BENIDORM","VILLAJOYOSA","16:50","17:30","16:45"]
 ];
 // NORMA para TODAS las salidas de 00 ATALAYAS: hora de pedido = 10 min antes de la salida; corte del TRANSELEVADOR = 30 min antes.
 // (Si un tramo ya trae su corte de transelevador escrito a mano, se respeta. Las salidas antes de las 08:00 también lo llevan.)
@@ -268,7 +271,7 @@ function enumerate(from,to){
   if(from===to)return {same:true,paths:[]};
   // Circuitos cerrados: entre esos dos almacenes solo valen servicios directos (sin desvíos por 00)
   const pair=(x,y)=>(from===x&&to===y)||(from===y&&to===x);
-  const closedRoutes=pair('HORADADA','TORREVIEJA')?['R03B']:pair('JAVEA','ONDARA')?['R17']:null;
+  const closedRoutes=pair('HORADADA','TORREVIEJA')?['R03B']:pair('VILLAJOYOSA','BENIDORM')?['R19']:pair('JAVEA','ONDARA')?['R17']:null;
   const closed=!!closedRoutes;
   const pool=closed?LEGS.filter(e=>closedRoutes.includes(e[0])):LEGS_GEN;
   const firsts=pool.filter(e=>e[1]===from).sort((a,b)=>min(a[3])-min(b[3]));
