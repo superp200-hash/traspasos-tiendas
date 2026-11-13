@@ -45,7 +45,7 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.66</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.67</span></h1>
 <div id="stats" class="small" aria-live="polite"></div>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
@@ -243,7 +243,11 @@ LEGS.forEach(e=>{if(e[1]==='ATALAYAS'){const d=min(e[3]);e[5]=fmt(d-10);if(!e[6]
 // ============================================================
 // Rutas exclusivas: sus tramos no se usan para enlazar con otras tiendas, solo entre sus dos almacenes
 const EXCLUSIVE_ROUTES=new Set(["R04B"]);
-const LEGS_GEN=LEGS.filter(e=>!EXCLUSIVE_ROUTES.has(e[0]));
+// 11 ELCHE CARRUS <-> 29 ELCHE INCA: están a 300 m y tienen CRUCES CONTINUOS cada media hora, sin horario propio.
+// Entre ellas no se muestran horarios; para enlazar con el resto se generan cruces cada 30 min (07:00 a 19:00, 5 min de trayecto) que solo usa el motor.
+const CRUCE=['ELCHE CARRUS','ELCHE INCA'];
+const CROSS=[];for(let m=7*60;m<=19*60;m+=30){const a=fmt(m),b=fmt(m+5);CROSS.push(['RX',CRUCE[0],CRUCE[1],a,b,a]);CROSS.push(['RX',CRUCE[1],CRUCE[0],a,b,a])}
+const LEGS_GEN=LEGS.filter(e=>!EXCLUSIVE_ROUTES.has(e[0])&&!(e[0]==='R04'&&e[1]===CRUCE[0]&&e[2]===CRUCE[1])).concat(CROSS);
 let origin="",destination="";
 function min(s){let m=String(s).match(/(\d{1,2}):(\d{2})/);return m?+m[1]*60+ +m[2]:null}
 // Norma: cualquier hora de pedido a partir de las 19:15 se muestra como 19:15 (conserva el D/A)
@@ -287,11 +291,12 @@ function enumerate(from,to){
   const list=[...byDeparture.values()].sort((a,b)=>a.legs[0].dep-b.legs[0].dep);
   const arrOf=p=>p.legs[p.legs.length-1].arr;
   // Se descartan los viajes que salen antes pero llegan más tarde que otro viaje posterior (no tienen sentido)
-  return {same:false,paths:list.filter(p=>!list.some(q=>q!==p&&q.legs[0].dep>=p.legs[0].dep&&arrOf(q)<arrOf(p)))};
+  return {same:false,paths:list.filter(p=>!list.some(q=>q!==p&&q.legs[0].dep>=p.legs[0].dep&&(arrOf(q)<arrOf(p)||(p.legs[0].edge[0]==='RX'&&q.legs[0].dep>p.legs[0].dep&&arrOf(q)<=arrOf(p)))))};
 }
 function chainText(p){return p.legs.map(x=>fmt(x.dep)+(Math.floor(x.dep/1440)>0?" D/S":"")+" → "+fmt(x.arr)+(Math.floor(x.arr/1440)>0?" D/S":"")).join("  |  ")}
 function routeText(p){return p.legs.map(x=>DISPLAY_NAMES[x.edge[1]]||x.edge[1]).concat(DISPLAY_NAMES[p.legs[p.legs.length-1].edge[2]]||p.legs[p.legs.length-1].edge[2]).join(" → ")}
 function calc(){renderBefore();const out=document.querySelector('#result'); if(!origin||!destination){out.innerHTML='';return} if(origin===destination){out.innerHTML='<div class="result"><div class="big">Mismo almacén.</div></div>';return}
+  if(CRUCE.includes(origin)&&CRUCE.includes(destination)){out.innerHTML='<div class="result"><div class="big">'+(DISPLAY_NAMES[origin]||origin)+' → '+(DISPLAY_NAMES[destination]||destination)+'</div><div class="steps"><div class="step ok first"><b>🔁 CRUCES CONTINUOS CADA 30 MIN</b><div class="trip"><div><span class="lbl">DISTANCIA</span><span class="val">300 m</span></div><div><span class="lbl">HORARIO</span><span class="val">SIN HORARIO</span></div></div></div></div></div>';return}
   const r=enumerate(origin,destination); if(!r.paths.length){out.innerHTML='<div class="result"><div class="big">🔴 Sin cadena encontrada</div><div class="incident">No hay un servicio directo o una cadena válida con los horarios cargados.</div></div>';return}
   let s='<div class="result"><div class="big">'+(DISPLAY_NAMES[origin]||origin)+' → '+(DISPLAY_NAMES[destination]||destination)+'</div><div class="steps">';
   const now=nowMin();
