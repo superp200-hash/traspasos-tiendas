@@ -45,7 +45,7 @@ button.selected{background:#17202a;color:#fff;border-color:#17202a}
 <body>
 <main>
 <section class="card">
-<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.67</span></h1>
+<h1>📦 COMPROBADOR TRASPASOS <span class="version-badge">V2.68</span></h1>
 <div id="stats" class="small" aria-live="polite"></div>
 <div id="store-alerts" aria-live="polite"></div>
 <div class="clock">🕐 <span id="clock"></span></div>
@@ -352,15 +352,17 @@ function pintarStats(){const el=document.getElementById('stats');if(!el)return;c
   if(nConsultas!=null)p.push('🔎 '+nConsultas.toLocaleString('es-ES')+' consultas');
   if(nConectados!=null)p.push('🟢 '+nConectados+' conectado'+(nConectados===1?'':'s'));
   el.textContent=p.join(' · ')}
-async function contador(accion,clave){try{const r=await fetch(CNT+'/'+accion+'/'+NS+'/'+clave,{cache:'no-store'});if(!r.ok)return 0;const j=await r.json();return j.value||0}catch(e){return null}}
+try{const c=+localStorage.getItem('consultasMax')||0;if(c){nConsultas=c;pintarStats()}}catch(e){}
+async function contador(accion,clave){try{const r=await fetch(CNT+'/'+accion+'/'+NS+'/'+clave,{cache:'no-store'});if(!r.ok)return null;const j=await r.json();return(typeof j.value==='number')?j.value:null}catch(e){return null}}
 async function presencia(){const t=Math.floor(Date.now()/300000),clave='online-'+t;let marcado='';try{marcado=sessionStorage.getItem('presencia')||''}catch(e){}
   if(marcado!==clave){await contador('hit',clave);try{sessionStorage.setItem('presencia',clave)}catch(e){}}
   const a=await contador('get',clave),b=await contador('get','online-'+(t-1));if(a!=null){nConectados=Math.max(a,b||0,1);pintarStats()}}
-contador('get','consultas').then(v=>{if(v!=null){nConsultas=v;pintarStats()}});
+function guardarConsultas(v){try{const prev=+localStorage.getItem('consultasMax')||0;if(v>prev)localStorage.setItem('consultasMax',v);return Math.max(v,prev)}catch(e){return v}}
+contador('get','consultas').then(v=>{if(v){nConsultas=guardarConsultas(v);pintarStats()}});
 presencia();setInterval(presencia,60000);
 // Se cuenta una consulta cuando hay origen y destino distintos y la pareja cambia (con 2 s de espera para no contar clics seguidos)
 let ultimaPareja='',tConsulta=null;
-function contarConsulta(){clearTimeout(tConsulta);tConsulta=setTimeout(async()=>{if(!origin||!destination||origin===destination)return;const k=origin+'>'+destination;if(k===ultimaPareja)return;ultimaPareja=k;const n=await contador('hit','consultas');if(n){nConsultas=n;pintarStats()}},2000)}
+function contarConsulta(){clearTimeout(tConsulta);tConsulta=setTimeout(async()=>{if(!origin||!destination||origin===destination)return;const k=origin+'>'+destination;if(k===ultimaPareja)return;ultimaPareja=k;const n=await contador('hit','consultas');if(n){nConsultas=guardarConsultas(n);pintarStats()}},2000)}
 buttons('#orig','o');buttons('#dest','d');
 // Recupera la selección si la página se ha recargado sola por una versión nueva
 try{const sv=JSON.parse(sessionStorage.getItem('tr_sel')||'null');sessionStorage.removeItem('tr_sel');if(sv){if(STORES.includes(sv.o))origin=sv.o;if(STORES.includes(sv.d))destination=sv.d;mark()}}catch(e){}
